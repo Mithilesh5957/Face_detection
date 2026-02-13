@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from typing import Optional, List
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, validator
 
 
 # ── Auth ────────────────────────────────────────────────────────────────────────
@@ -48,6 +48,7 @@ class StudentOut(BaseModel):
 
     class Config:
         from_attributes = True
+        orm_mode = True
 
 
 class FaceCaptureRequest(BaseModel):
@@ -63,19 +64,15 @@ class SessionOut(BaseModel):
     end_time: Optional[datetime] = None
     status: str
 
-    @model_validator(mode="before")
+    @validator("status", pre=True)
     @classmethod
-    def _coerce_enums(cls, values):
-        """Convert ORM enum fields to their string values."""
-        # Handle both dict and ORM object
-        if hasattr(values, "status") and hasattr(values.status, "value"):
-            values.status = values.status.value
-        elif isinstance(values, dict) and hasattr(values.get("status"), "value"):
-            values["status"] = values["status"].value
-        return values
+    def _coerce_status(cls, v):
+        """Convert ORM enum to its string value."""
+        return v.value if hasattr(v, "value") else v
 
     class Config:
         from_attributes = True
+        orm_mode = True
 
 
 class AttendanceLogOut(BaseModel):

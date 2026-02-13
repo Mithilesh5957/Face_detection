@@ -13,12 +13,12 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
 # ── Computer Vision & AI ─────────────────────────────────
-opencv-python-headless==4.10.0.84
-numpy==1.26.4
-ultralytics==8.3.0
-insightface==0.7.3
-onnxruntime==1.19.2
-mediapipe==0.10.18
+opencv-python-headless>=4.10.0
+numpy>=1.26.4
+ultralytics>=8.3.0
+insightface>=0.7.3
+onnxruntime>=1.19.2
+mediapipe>=0.10.14
 
 # ── WebSocket ────────────────────────────────────────────
 websockets==12.0
