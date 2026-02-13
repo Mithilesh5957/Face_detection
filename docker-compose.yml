@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  # ── MySQL Database ─────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: attendance_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: attendance_secret
+      MYSQL_DATABASE: attendance_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - attendance_net
+
+  # ── FastAPI Backend ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: attendance_backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: attendance_secret
+      DB_NAME: attendance_db
+      SECRET_KEY: change-this-in-production-to-a-random-string
+      FACE_SIMILARITY_THRESHOLD: "0.45"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - models_data:/app/models
+    # Uncomment the line below on Linux to pass a webcam device:
+    # devices:
+    #   - /dev/video0:/dev/video0
+    networks:
+      - attendance_net
+
+  # ── React Frontend (Nginx) ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: attendance_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - attendance_net
+
+volumes:
+  mysql_data:
+  models_data:
+
+
+networks:
+  attendance_net:
+    driver: bridge

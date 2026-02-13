@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Global Styles ────────────────────────────────────────── */
+:root {
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  --gradient-dark: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4f46e5 #1e293b;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #4f46e5;
+  border-radius: 3px;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--gradient-dark);
+}
+
+/* ── Glass Card ───────────────────────────────────────────── */
+@layer components {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+
+  .glass-card-hover:hover {
+    @apply bg-white/10 border-white/20 shadow-lg shadow-primary-500/10;
+    transform: translateY(-2px);
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold rounded-xl
+           hover:from-primary-500 hover:to-primary-400 transition-all duration-300
+           shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-white/10 text-white font-semibold rounded-xl border border-white/20
+           hover:bg-white/20 transition-all duration-300
+           active:scale-95;
+  }
+
+  .btn-danger {
+    @apply px-4 py-2 bg-red-500/20 text-red-400 font-medium rounded-lg border border-red-500/30
+           hover:bg-red-500/30 transition-all duration-200;
+  }
+
+  .btn-success {
+    @apply px-4 py-2 bg-emerald-500/20 text-emerald-400 font-medium rounded-lg border border-emerald-500/30
+           hover:bg-emerald-500/30 transition-all duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white
+           placeholder-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1
+           focus:ring-primary-500/50 transition-all duration-200;
+  }
+
+  .stat-card {
+    @apply glass-card p-6 flex flex-col gap-2;
+  }
+
+  .badge-present {
+    @apply px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm font-medium rounded-full;
+  }
+
+  .badge-absent {
+    @apply px-3 py-1 bg-red-500/20 text-red-400 text-sm font-medium rounded-full;
+  }
+
+  .badge-active {
+    @apply px-3 py-1 bg-amber-500/20 text-amber-400 text-sm font-medium rounded-full animate-pulse;
+  }
+}
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+/* ── Camera feed styling ──────────────────────────────────── */
+.camera-feed {
+  @apply relative rounded-2xl overflow-hidden border-2 border-white/10;
+  aspect-ratio: 16 / 9;
+}
+
+.camera-feed video,
+.camera-feed canvas,
+.camera-feed img {
+  @apply w-full h-full object-cover;
+}
+
+.camera-overlay {
+  @apply absolute inset-0 flex items-center justify-center;
+  background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.4) 100%);
+}

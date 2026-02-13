@@ -1,0 +1,24 @@
+# ── Core ─────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+
+# ── Database ─────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.35
+aiomysql==0.2.0
+pymysql==1.1.1
+
+# ── Auth ─────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ── Computer Vision & AI ─────────────────────────────────
+opencv-python-headless==4.10.0.84
+numpy==1.26.4
+ultralytics==8.3.0
+insightface==0.7.3
+onnxruntime==1.19.2
+mediapipe==0.10.18
+
+# ── WebSocket ────────────────────────────────────────────
+websockets==12.0
