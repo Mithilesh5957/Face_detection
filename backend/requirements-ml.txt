@@ -1,0 +1,5 @@
+# Heavy ML packages — installed separately in Dockerfile for better caching
+# These are optional; the app has fallbacks (MediaPipe for detection)
+ultralytics>=8.3.0
+insightface>=0.7.3
+onnxruntime>=1.19.2

@@ -2,7 +2,13 @@
 
 from datetime import date, datetime
 from typing import Optional, List
-from pydantic import BaseModel, validator
+
+try:
+    from pydantic import field_validator, BaseModel, ConfigDict
+    PYDANTIC_V2 = True
+except ImportError:
+    from pydantic import validator, BaseModel
+    PYDANTIC_V2 = False
 
 
 # ── Auth ────────────────────────────────────────────────────────────────────────
@@ -46,9 +52,11 @@ class StudentOut(BaseModel):
     semester: int
     has_face: bool  # True if face_embedding is not None
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
+    if PYDANTIC_V2:
+        model_config = ConfigDict(from_attributes=True)
+    else:
+        class Config:
+            orm_mode = True
 
 
 class FaceCaptureRequest(BaseModel):
@@ -64,15 +72,23 @@ class SessionOut(BaseModel):
     end_time: Optional[datetime] = None
     status: str
 
-    @validator("status", pre=True)
-    @classmethod
-    def _coerce_status(cls, v):
-        """Convert ORM enum to its string value."""
-        return v.value if hasattr(v, "value") else v
+    if PYDANTIC_V2:
+        @field_validator("status", mode="before")
+        @classmethod
+        def _coerce_status(cls, v):
+            """Convert ORM enum to its string value."""
+            return v.value if hasattr(v, "value") else v
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
+        model_config = ConfigDict(from_attributes=True)
+    else:
+        @validator("status", pre=True)
+        @classmethod
+        def _coerce_status(cls, v):
+            """Convert ORM enum to its string value."""
+            return v.value if hasattr(v, "value") else v
+
+        class Config:
+            orm_mode = True
 
 
 class AttendanceLogOut(BaseModel):
@@ -84,8 +100,11 @@ class AttendanceLogOut(BaseModel):
     timestamp: Optional[datetime] = None
     status: str
 
-    class Config:
-        from_attributes = True
+    if PYDANTIC_V2:
+        model_config = ConfigDict(from_attributes=True)
+    else:
+        class Config:
+            orm_mode = True
 
 
 class OverrideRequest(BaseModel):

@@ -14,9 +14,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create working directory
 WORKDIR /app
 
-# Install Python dependencies
+# Install core Python dependencies (fast, well-cached layer)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install heavy ML dependencies (separate layer for caching)
+COPY requirements-ml.txt .
+RUN pip install --no-cache-dir -r requirements-ml.txt || \
+    echo "⚠️  ML packages install failed — app will run with MediaPipe fallback"
 
 # Copy application code
 COPY . .

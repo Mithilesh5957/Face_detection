@@ -8,7 +8,7 @@ services:
       MYSQL_ROOT_PASSWORD: attendance_secret
       MYSQL_DATABASE: attendance_db
     ports:
-      - "3306:3306"
+      - "3307:3306" # Host 3307 → Container 3306 (avoids local MySQL conflict)
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
