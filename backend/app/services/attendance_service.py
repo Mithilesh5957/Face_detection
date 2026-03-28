@@ -61,7 +61,7 @@ class AttendanceProcessor:
         Process a single video frame.
 
         Returns:
-            (annotated_frame, detections_list)
+            (clean_frame, detection_events, tracking_boxes)
         """
         # Reset tracker if session changed
         if session_id != self._current_session_id:
@@ -81,16 +81,17 @@ class AttendanceProcessor:
         # Step 3: For each un-processed track, run recognition
         annotated = frame.copy()
         detection_events = []
+        tracking_boxes = []
 
         for track in tracks:
             x1, y1, x2, y2 = track.bbox
             label = "Unknown"
-            color = (0, 0, 255)  # Red for unknown
+            is_recognized = False
 
             if track.student_id is not None:
                 # Already recognised
                 label = self._db_names.get(track.student_id, f"ID:{track.student_id}")
-                color = (0, 255, 0)  # Green for known
+                is_recognized = True
             elif not track.processed and self._db_embeddings:
                 # Need to recognise
                 face_crop = frame[max(0, y1):y2, max(0, x1):x2]
@@ -107,7 +108,7 @@ class AttendanceProcessor:
                             track.student_id = student_id
                             track.processed = True
                             label = self._db_names.get(student_id, f"ID:{student_id}")
-                            color = (0, 255, 0)
+                            is_recognized = True
 
                             # Mark attendance (once per session per student)
                             if student_id not in self._marked_students:
@@ -122,19 +123,17 @@ class AttendanceProcessor:
                         else:
                             track.processed = True  # don't retry every frame
 
-            # Draw bounding box and label
-            cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
-            label_text = f"{label}"
-            (tw, th), _ = cv2.getTextSize(
-                label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
-            )
-            cv2.rectangle(annotated, (x1, y1 - th - 10), (x1 + tw, y1), color, -1)
-            cv2.putText(
-                annotated, label_text, (x1, y1 - 5),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2,
-            )
+            # Add to Tracking Boxes payload
+            tracking_boxes.append({
+                "bbox": [int(x1), int(max(0, y1)), int(x2 - x1), int(y2 - y1)], # x, y, width, height
+                "label": label,
+                "is_recognized": is_recognized,
+                "student_id": track.student_id
+            })
 
-        return annotated, detection_events
+            # Removed cvx.rectangle drawing to keep the frame clean for the frontend
+
+        return annotated, detection_events, tracking_boxes
 
     async def _mark_present(self, db: AsyncSession, session_id: int, student_id: int):
         """Update the attendance log to 'present' for this student in this session."""

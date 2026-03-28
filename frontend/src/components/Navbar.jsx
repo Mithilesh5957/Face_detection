@@ -12,13 +12,13 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 h-16 glass-card border-0 border-b border-white/10 rounded-none flex items-center px-6">
+    <nav className="fixed top-0 left-0 right-0 z-50 h-[72px] bg-[#f0f0f5] border-b-4 border-black flex items-center px-6 shadow-sm">
       {/* Logo */}
-      <Link to={isAdmin ? '/dashboard' : '/student-view'} className="flex items-center gap-3 mr-8">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center">
-          <FiShield className="text-white text-lg" />
+      <Link to={isAdmin ? '/dashboard' : '/student-view'} className="flex items-center gap-3 mr-8 group">
+        <div className="w-10 h-10 bg-black flex items-center justify-center transition-transform group-hover:scale-105 shadow-[3px_3px_0px_#ebff00]">
+          <FiShield className="text-[#ebff00] text-xl" />
         </div>
-        <span className="text-lg font-bold bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent">
+        <span className="text-2xl font-black text-black tracking-tight uppercase">
           FaceAttend
         </span>
       </Link>
@@ -29,15 +29,15 @@ export default function Navbar() {
       {/* User info */}
       {user && (
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
-            <FiUser className="text-primary-400" />
-            <span className="text-sm text-gray-300">{user.name}</span>
-            <span className="text-xs px-2 py-0.5 rounded-md bg-primary-500/20 text-primary-300 font-medium uppercase">
+          <div className="flex items-center gap-2 px-4 py-2 neo-inset border-2 border-transparent">
+            <FiUser className="text-black text-lg" />
+            <span className="text-sm font-bold text-black">{user.name}</span>
+            <span className="text-[10px] px-2 py-0.5 ml-2 bg-[#ebff00] border border-black text-black font-black uppercase shadow-[1px_1px_0px_#000000]">
               {user.role}
             </span>
           </div>
-          <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors" title="Logout">
-            <FiLogOut />
+          <button onClick={handleLogout} className="p-3 bg-red-500 text-white border-2 border-black shadow-[2px_2px_0px_#000000] hover:translate-y-px hover:shadow-[1px_1px_0px_#000000] transition-all" title="Logout">
+            <FiLogOut strokeWidth={3} />
           </button>
         </div>
       )}

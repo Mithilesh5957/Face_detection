@@ -165,8 +165,9 @@ async def attendance_websocket(ws: WebSocket):
     """
     Client sends base64 JPEG frames.
     Server processes them through the AI pipeline and returns:
-      - Annotated frame (base64 JPEG)
-      - List of detected / recognized students
+      - Clean frame (base64 JPEG)
+      - List of new detection events (marked present)
+      - List of continuous tracking boxes [x, y, width, height]
     """
     await ws.accept()
 
@@ -200,17 +201,18 @@ async def attendance_websocket(ws: WebSocket):
 
             # Process through AI pipeline
             async with AsyncSessionLocal() as db:
-                annotated_frame, detections = await processor.process_frame(
+                clean_frame, detections, tracking_boxes = await processor.process_frame(
                     frame, session_id, db
                 )
 
-            # Encode annotated frame
-            _, buffer = cv2.imencode(".jpg", annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            # Encode clean frame
+            _, buffer = cv2.imencode(".jpg", clean_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
             annotated_b64 = base64.b64encode(buffer).decode("utf-8")
 
             await ws.send_json({
                 "frame": annotated_b64,
                 "detections": detections,
+                "tracking_boxes": tracking_boxes,
             })
 
     except WebSocketDisconnect:

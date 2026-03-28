@@ -3,9 +3,8 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import api from '../api/client';
 import toast from 'react-hot-toast';
-import { FiPlus, FiTrash2, FiCamera, FiCheck, FiX, FiUser } from 'react-icons/fi';
-
-const CAPTURE_ANGLES = ['Front', 'Left', 'Right', 'Look Up'];
+import { FiPlus, FiTrash2, FiCamera, FiCheck, FiX, FiUser, FiSearch, FiFilter } from 'react-icons/fi';
+import CameraFeed from '../components/CameraFeed';
 
 export default function StudentManagementPage() {
   const [students, setStudents] = useState([]);
@@ -13,10 +12,11 @@ export default function StudentManagementPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', college_roll_number: '', full_name: '', branch: '', semester: '' });
   const [capturing, setCapturing] = useState(null); // student_id
   const [capturedImages, setCapturedImages] = useState([]);
-  const [currentAngle, setCurrentAngle] = useState(0);
-  const videoRef = useRef(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
+  const cameraRef = useRef(null);
   const canvasRef = useRef(null);
-  const streamRef = useRef(null);
 
   useEffect(() => { loadStudents(); }, []);
 
@@ -47,44 +47,52 @@ export default function StudentManagementPage() {
     } catch (err) { toast.error('Failed to delete'); }
   };
 
-  // ── Face Capture ──────────────────────────────────────────────────
-  const startCapture = async (studentId) => {
+  // ── Auto Face Capture ──────────────────────────────────────────────────
+  const startCapture = (studentId) => {
     setCapturing(studentId);
     setCapturedImages([]);
-    setCurrentAngle(0);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch (err) {
-      toast.error('Camera access denied');
-      setCapturing(null);
-    }
+    setIsScanning(false);
   };
 
-  const captureFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const video = videoRef.current;
+  const runAutoScan = async () => {
+    if (isScanning) return;
+    setIsScanning(true);
+    setCapturedImages([]);
+    toast.success('Scanning started. Please look at the camera...', { duration: 2000 });
+    
+    let images = [];
+    for (let i = 0; i < 4; i++) {
+      await new Promise(r => setTimeout(r, 600)); // wait 600ms between captures
+      const b64 = captureSingleFrame();
+      if (b64) {
+        images.push(b64);
+        setCapturedImages([...images]); // Update UI progress
+      }
+    }
+    
+    setIsScanning(false);
+    toast.success('Scan complete! Saving face data...', { duration: 2000 });
+    submitFaces(images);
+  };
+
+  const captureSingleFrame = () => {
+    if (!cameraRef.current || !canvasRef.current) return null;
+    const video = cameraRef.current.getVideoElement();
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return null;
+
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    const b64 = dataUrl.split(',')[1];
+    return dataUrl.split(',')[1];
+  };
 
-    setCapturedImages((prev) => [...prev, b64]);
-    const nextAngle = currentAngle + 1;
-    if (nextAngle >= CAPTURE_ANGLES.length) {
-      toast.success('All angles captured!');
-    }
-    setCurrentAngle(nextAngle);
-  }, [currentAngle]);
-
-  const submitFaces = async () => {
-    if (capturedImages.length === 0) { toast.error('No images captured'); return; }
+  const submitFaces = async (imagesToSubmit) => {
+    if (!imagesToSubmit || imagesToSubmit.length === 0) return;
     try {
-      await api.post(`/students/${capturing}/face`, { images: capturedImages });
+      await api.post(`/students/${capturing}/face`, { images: imagesToSubmit });
       toast.success('Face registered successfully!');
       stopCapture();
       loadStudents();
@@ -92,36 +100,32 @@ export default function StudentManagementPage() {
   };
 
   const stopCapture = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
     setCapturing(null);
     setCapturedImages([]);
-    setCurrentAngle(0);
+    setIsScanning(false);
   };
 
   return (
     <div className="min-h-screen">
       <Navbar />
       <Sidebar />
-      <main className="ml-64 pt-16 p-8">
+      <main className="ml-64 pt-[72px] p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
-            <h1 className="text-3xl font-bold text-white">Student Management</h1>
-            <p className="text-gray-400 mt-1">Register students and capture face data</p>
+            <h1 className="brutal-title">Student Management</h1>
+            <p className="brutal-subtitle mt-2">Register students and capture face data</p>
           </div>
           <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2">
-            <FiPlus /> Add Student
+            <FiPlus strokeWidth={3} /> Add Student
           </button>
         </div>
 
         {/* Registration Form */}
         {showForm && (
-          <div className="glass-card p-6 mb-8 animate-slide-up">
-            <h2 className="text-xl font-semibold text-white mb-4">Register New Student</h2>
-            <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="neo-panel border-4 border-black p-8 mb-10 animate-slide-up">
+            <h2 className="brutal-subtitle mb-6 text-black">Register New Student</h2>
+            <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <input className="input-field" placeholder="Display Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
               <input className="input-field" placeholder="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
               <input className="input-field" placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
@@ -139,40 +143,45 @@ export default function StudentManagementPage() {
 
         {/* Face Capture Modal */}
         {capturing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="glass-card p-6 w-full max-w-2xl animate-slide-up">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">Face Capture</h2>
-                <button onClick={stopCapture} className="p-2 rounded-lg hover:bg-white/10 text-gray-400"><FiX /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-md">
+            <div className="brutal-card bg-[#f0f0f5] p-8 w-full max-w-2xl animate-slide-up">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="brutal-subtitle text-black">Face Capture</h2>
+                <button onClick={stopCapture} className="p-2 border-2 border-black bg-white hover:-translate-y-1 shadow-[2px_2px_0px_#000] active:translate-y-px active:shadow-none transition-all"><FiX className="text-black font-black" strokeWidth={3} /></button>
               </div>
 
               {/* Progress Steps */}
-              <div className="flex gap-2 mb-4">
-                {CAPTURE_ANGLES.map((angle, i) => (
-                  <div key={angle} className={`flex-1 h-2 rounded-full ${i < capturedImages.length ? 'bg-emerald-500' : i === currentAngle ? 'bg-primary-500 animate-pulse' : 'bg-white/10'}`} />
+              <div className="flex gap-3 mb-6">
+                {[0, 1, 2, 3].map((step, i) => (
+                  <div key={step} className={`flex-1 h-3 rounded-none border-2 border-black transition-all duration-300 ${i < capturedImages.length ? 'bg-[#ebff00] shadow-[2px_2px_0px_#000]' : isScanning && i === capturedImages.length ? 'bg-black animate-pulse shadow-[2px_2px_0px_#d1d5db]' : 'bg-white'}`} />
                 ))}
               </div>
-              <p className="text-sm text-gray-400 mb-4 text-center">
-                {currentAngle < CAPTURE_ANGLES.length
-                  ? <>Look <span className="text-primary-400 font-semibold">{CAPTURE_ANGLES[currentAngle]}</span> and click capture</>
-                  : <span className="text-emerald-400">All angles captured! Click "Save" to register.</span>}
-              </p>
+              <div className="text-center mb-6 min-h-[24px]">
+                {capturedImages.length === 4 ? (
+                  <span className="text-black font-black uppercase tracking-widest px-3 py-1 bg-[#ebff00] border-2 border-black shadow-[2px_2px_0px_#000]">Scan Complete! Registering...</span>
+                ) : isScanning ? (
+                  <span className="text-black font-black uppercase tracking-widest animate-pulse">Scanning... Slowly turn your head ({capturedImages.length}/4)</span>
+                ) : (
+                  <span className="text-gray-600 font-bold uppercase tracking-wider text-sm">Position your face in the center to begin scanning.</span>
+                )}
+              </div>
 
               {/* Camera View */}
-              <div className="camera-feed mb-4">
-                <video ref={videoRef} autoPlay playsInline className="w-full rounded-xl" />
+              <div className="camera-feed mb-4 h-64 md:h-80 w-full relative">
+                <CameraFeed 
+                  ref={cameraRef} 
+                  isActive={true} 
+                  onStreamError={() => setCapturing(null)} 
+                />
                 <canvas ref={canvasRef} className="hidden" />
               </div>
 
-              <div className="flex gap-3 justify-center">
-                {currentAngle < CAPTURE_ANGLES.length && (
-                  <button onClick={captureFrame} className="btn-primary flex items-center gap-2">
-                    <FiCamera /> Capture {CAPTURE_ANGLES[currentAngle]}
-                  </button>
-                )}
-                {capturedImages.length > 0 && (
-                  <button onClick={submitFaces} className="btn-success flex items-center gap-2">
-                    <FiCheck /> Save Face Data ({capturedImages.length} images)
+              <div className="flex justify-center mt-4">
+                {!isScanning && capturedImages.length < 4 && (
+                  <button onClick={runAutoScan} className="btn-primary flex items-center gap-2 group relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <FiCamera className="relative z-10" /> 
+                    <span className="relative z-10">Start Auto-Scan</span>
                   </button>
                 )}
               </div>
@@ -180,47 +189,84 @@ export default function StudentManagementPage() {
           </div>
         )}
 
+        {/* Filter Bar */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-black text-lg" strokeWidth={3} />
+            <input 
+              type="text" 
+              placeholder="Search by name or roll number..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-field !pl-12 !py-3 border-4 border-black font-bold focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none"
+            />
+          </div>
+          <div className="flex items-center gap-2 bg-white border-4 border-black px-4 shadow-[4px_4px_0px_#d1d5db]">
+            <FiFilter className="text-black" strokeWidth={3} />
+            <select 
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="bg-transparent border-none outline-none font-bold text-black uppercase tracking-widest cursor-pointer py-3"
+            >
+              <option value="">ALL BRANCHES</option>
+              {Array.from(new Set(students.map(s => s.branch))).filter(Boolean).map(branch => (
+                <option key={branch} value={branch}>{branch}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* Student Table */}
-        <div className="glass-card overflow-hidden">
-          <table className="w-full text-left">
+        <div className="neo-panel border-4 border-black overflow-hidden bg-white">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/10">
-                <th className="p-4 text-sm text-gray-400 font-medium">Student</th>
-                <th className="p-4 text-sm text-gray-400 font-medium">Roll No</th>
-                <th className="p-4 text-sm text-gray-400 font-medium">Branch</th>
-                <th className="p-4 text-sm text-gray-400 font-medium">Sem</th>
-                <th className="p-4 text-sm text-gray-400 font-medium">Face</th>
-                <th className="p-4 text-sm text-gray-400 font-medium">Actions</th>
+              <tr className="border-b-4 border-black bg-[#f0f0f5]">
+                <th className="p-5 text-sm font-black text-black uppercase tracking-widest">Student</th>
+                <th className="p-5 text-sm font-black text-black uppercase tracking-widest">Roll No</th>
+                <th className="p-5 text-sm font-black text-black uppercase tracking-widest">Branch</th>
+                <th className="p-5 text-sm font-black text-black uppercase tracking-widest">Sem</th>
+                <th className="p-5 text-sm font-black text-black uppercase tracking-widest">Face</th>
+                <th className="p-5 text-sm font-black text-black uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {students.length === 0 ? (
-                <tr><td colSpan="6" className="p-8 text-center text-gray-500">No students registered yet</td></tr>
-              ) : students.map((s) => (
-                <tr key={s.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+              {students.filter(s => {
+                const matchesSearch = s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                      s.college_roll_number.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesBranch = branchFilter ? s.branch === branchFilter : true;
+                return matchesSearch && matchesBranch;
+              }).length === 0 ? (
+                <tr><td colSpan="6" className="p-8 text-center text-gray-500 font-bold uppercase tracking-widest">No students found</td></tr>
+              ) : students.filter(s => {
+                const matchesSearch = s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                      s.college_roll_number.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesBranch = branchFilter ? s.branch === branchFilter : true;
+                return matchesSearch && matchesBranch;
+              }).map((s) => (
+                <tr key={s.id} className="border-b-2 border-gray-200 hover:bg-[#ebff00]/10 transition-colors">
                   <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary-500/20 flex items-center justify-center">
-                        <FiUser className="text-primary-400" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 border-2 border-black bg-white flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                        <FiUser className="text-black text-lg" />
                       </div>
-                      <span className="text-white font-medium">{s.full_name}</span>
+                      <span className="text-black font-black uppercase text-sm tracking-wide">{s.full_name}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-gray-300">{s.college_roll_number}</td>
-                  <td className="p-4 text-gray-300">{s.branch}</td>
-                  <td className="p-4 text-gray-300">{s.semester}</td>
+                  <td className="p-4 text-gray-700 font-bold">{s.college_roll_number}</td>
+                  <td className="p-4 text-gray-700 font-bold uppercase">{s.branch}</td>
+                  <td className="p-4 text-gray-700 font-bold">{s.semester}</td>
                   <td className="p-4">
                     {s.has_face ? (
                       <span className="badge-present">✓ Registered</span>
                     ) : (
-                      <button onClick={() => startCapture(s.id)} className="btn-secondary text-sm py-1.5 px-3 flex items-center gap-1">
-                        <FiCamera className="text-xs" /> Capture
+                      <button onClick={() => startCapture(s.id)} className="btn-secondary text-xs py-2 px-3 flex items-center gap-2">
+                        <FiCamera className="text-sm" /> Capture
                       </button>
                     )}
                   </td>
                   <td className="p-4">
-                    <button onClick={() => handleDelete(s.id)} className="btn-danger text-sm py-1.5 px-3 flex items-center gap-1">
-                      <FiTrash2 className="text-xs" /> Delete
+                    <button onClick={() => handleDelete(s.id)} className="btn-danger text-xs py-2 px-3 flex items-center gap-2">
+                      <FiTrash2 className="text-sm" /> Delete
                     </button>
                   </td>
                 </tr>

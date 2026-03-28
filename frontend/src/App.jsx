@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import StudentManagementPage from './pages/StudentManagementPage';
 import AttendanceHubPage from './pages/AttendanceHubPage';
 import StudentViewPage from './pages/StudentViewPage';
+import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading, isAdmin } = useAuth();
@@ -39,6 +40,9 @@ export default function App() {
       } />
       <Route path="/attendance" element={
         <ProtectedRoute adminOnly><AttendanceHubPage /></ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <ProtectedRoute adminOnly><SettingsPage /></ProtectedRoute>
       } />
 
       {/* Student route */}
