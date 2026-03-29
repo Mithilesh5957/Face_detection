@@ -121,6 +121,24 @@ class SessionSummary(BaseModel):
     logs: List[AttendanceLogOut]
 
 
+# ── System Settings ─────────────────────────────────────────────────────────────
+class SettingsResponse(BaseModel):
+    id: int
+    fps_cap: int
+    confidence_threshold: float
+    auto_capture_delay_ms: int
+    draw_bounding_boxes: bool
+
+    class Config:
+        from_attributes = True
+
+class SettingsUpdate(BaseModel):
+    fps_cap: Optional[int] = Field(None, ge=1, le=60)
+    confidence_threshold: Optional[float] = Field(None, ge=0.1, le=1.0)
+    auto_capture_delay_ms: Optional[int] = Field(None, ge=100, le=5000)
+    draw_bounding_boxes: Optional[bool] = None
+
+
 # ── Reports ─────────────────────────────────────────────────────────────────────
 class StudentAttendanceReport(BaseModel):
     student_id: int

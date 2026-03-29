@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [recentSessions, setRecentSessions] = useState([]);
   const [allSessions, setAllSessions] = useState([]);
   const [filter, setFilter] = useState('all'); // all, active, completed
+  const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -37,6 +38,22 @@ export default function DashboardPage() {
         sessions: sessions.length,
         avgAttendance: Math.round(avgAttendance),
       });
+
+      // Calculate Class Distribution Chart Data
+      const buckets = { critical: 0, warning: 0, good: 0, excellent: 0 };
+      summary.forEach(s => {
+        if (s.percentage < 50) buckets.critical++;
+        else if (s.percentage < 75) buckets.warning++;
+        else if (s.percentage < 90) buckets.good++;
+        else buckets.excellent++;
+      });
+      setChartData([
+        { label: '<50%', value: buckets.critical, color: 'bg-red-500' },
+        { label: '50-74%', value: buckets.warning, color: 'bg-orange-500' },
+        { label: '75-89%', value: buckets.good, color: 'bg-[#ebff00]' },
+        { label: '90%+', value: buckets.excellent, color: 'bg-emerald-400' }
+      ]);
+
       setAllSessions(sessions);
       setRecentSessions(sessions.slice(0, 10)); // keep 10 initially
     } catch (err) {
@@ -111,27 +128,55 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          <Link to="/attendance" className="brutal-card p-6 flex items-center gap-6 group hover:bg-[#ebff00] transition-colors cursor-pointer bg-white">
-            <div className="w-16 h-16 border-4 border-black bg-black flex items-center justify-center group-hover:-translate-y-1 group-hover:shadow-[4px_4px_0px_#000] transition-all">
-              <FiCamera className="text-3xl text-[#ebff00]" strokeWidth={3} />
+        {/* Analytics & Actions Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
+          
+          {/* Class Attendance Distribution Chart */}
+          <div className="neo-panel border-4 border-black p-6 bg-white flex flex-col justify-between">
+            <h2 className="brutal-subtitle text-black mb-6">Attendance Distribution</h2>
+            <div className="flex items-end justify-between h-[180px] mt-4 gap-4 px-4">
+              {chartData.map((bar, idx) => {
+                const maxVal = Math.max(...chartData.map(d => d.value)) || 1;
+                const heightPct = Math.max((bar.value / maxVal) * 100, 5); // min 5% height so it's visible
+                return (
+                  <div key={idx} className="flex flex-col items-center flex-1 group">
+                    <div className="text-xl font-black text-black mb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {bar.value}
+                    </div>
+                    <div 
+                      className={`w-full ${bar.color} border-4 border-black shadow-[4px_4px_0px_#000] relative group-hover:-translate-y-2 transition-transform duration-300`}
+                      style={{ height: `${heightPct}%` }}
+                    ></div>
+                    <div className="mt-4 text-xs font-bold text-gray-600 uppercase tracking-widest text-center">
+                      {bar.label}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div>
-              <h3 className="text-xl font-black text-black uppercase tracking-wide">Live Session</h3>
-              <p className="text-sm font-bold text-gray-600">Start new face recognition</p>
-            </div>
-          </Link>
+          </div>
 
-          <Link to="/students" className="brutal-card p-6 flex items-center gap-6 group hover:bg-[#ebff00] transition-colors cursor-pointer bg-white">
-            <div className="w-16 h-16 border-4 border-black bg-black flex items-center justify-center group-hover:-translate-y-1 group-hover:shadow-[4px_4px_0px_#000] transition-all">
-              <FiUsers className="text-3xl text-[#ebff00]" strokeWidth={3} />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-black uppercase tracking-wide">Students</h3>
-              <p className="text-sm font-bold text-gray-600">Register new face records</p>
-            </div>
-          </Link>
+          <div className="flex flex-col gap-6">
+            <Link to="/attendance" className="brutal-card p-6 flex-1 flex items-center gap-6 group hover:bg-[#ebff00] transition-colors cursor-pointer bg-white">
+              <div className="w-16 h-16 border-4 border-black bg-black flex items-center justify-center group-hover:-translate-y-1 group-hover:shadow-[4px_4px_0px_#000] transition-all">
+                <FiCamera className="text-3xl text-[#ebff00]" strokeWidth={3} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-black uppercase tracking-wide">Live Session</h3>
+                <p className="text-sm font-bold text-gray-600">Start new face recognition</p>
+              </div>
+            </Link>
+
+            <Link to="/students" className="brutal-card p-6 flex-1 flex items-center gap-6 group hover:bg-[#ebff00] transition-colors cursor-pointer bg-white">
+              <div className="w-16 h-16 border-4 border-black bg-black flex items-center justify-center group-hover:-translate-y-1 group-hover:shadow-[4px_4px_0px_#000] transition-all">
+                <FiUsers className="text-3xl text-[#ebff00]" strokeWidth={3} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-black uppercase tracking-wide">Students</h3>
+                <p className="text-sm font-bold text-gray-600">Register new face records</p>
+              </div>
+            </Link>
+          </div>
         </div>
 
         {/* Recent Sessions */}

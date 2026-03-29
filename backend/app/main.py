@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
-from app.routers import auth_router, students_router, attendance_router, reports_router
+from app.routers import auth_router, students_router, attendance_router, reports_router, settings_router
 
 
 @asynccontextmanager
@@ -60,6 +60,7 @@ app.include_router(auth_router.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(students_router.router, prefix="/api/students", tags=["Students"])
 app.include_router(attendance_router.router, prefix="/api/attendance", tags=["Attendance"])
 app.include_router(reports_router.router, prefix="/api/reports", tags=["Reports"])
+app.include_router(settings_router.router, prefix="/api/settings", tags=["Settings"])
 
 
 @app.get("/api/health")

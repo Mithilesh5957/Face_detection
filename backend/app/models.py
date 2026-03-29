@@ -5,7 +5,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     Column, Integer, String, Enum, ForeignKey, Date,
-    DateTime, LargeBinary, UniqueConstraint,
+    DateTime, LargeBinary, UniqueConstraint, Float, Boolean
 )
 from sqlalchemy.orm import relationship
 
@@ -85,3 +85,13 @@ class AttendanceLog(Base):
     __table_args__ = (
         UniqueConstraint("session_id", "student_id", name="uq_session_student"),
     )
+
+# ── System Settings ─────────────────────────────────────────────────────────────
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fps_cap = Column(Integer, nullable=False, default=5)
+    confidence_threshold = Column(Float, nullable=False, default=0.6)
+    auto_capture_delay_ms = Column(Integer, nullable=False, default=600)
+    draw_bounding_boxes = Column(Boolean, nullable=False, default=True)
