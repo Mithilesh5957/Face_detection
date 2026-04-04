@@ -41,7 +41,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - models_data:/app/models
+      - models_data:/root/.insightface
     # Uncomment the line below on Linux to pass a webcam device:
     # devices:
     #   - /dev/video0:/dev/video0
