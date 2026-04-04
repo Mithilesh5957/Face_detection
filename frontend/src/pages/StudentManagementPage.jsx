@@ -8,9 +8,9 @@ import CameraFeed from '../components/CameraFeed';
 
 export default function StudentManagementPage() {
   const [students, setStudents] = useState([]);
-  const [showForm, setShowForm] = useState(false);
+  const [wizardMode, setWizardMode] = useState(null); // 'camera-new', 'form-new', 'camera-existing'
+  const [activeStudentId, setActiveStudentId] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', password: '', college_roll_number: '', full_name: '', branch: '', semester: '' });
-  const [capturing, setCapturing] = useState(null); // student_id
   const [capturedImages, setCapturedImages] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,8 +48,16 @@ export default function StudentManagementPage() {
   };
 
   // ── Auto Face Capture ──────────────────────────────────────────────────
-  const startCapture = (studentId) => {
-    setCapturing(studentId);
+  const startNewRegistration = () => {
+    setWizardMode('camera-new');
+    setCapturedImages([]);
+    setIsScanning(false);
+    setForm({ name: '', email: '', password: '', college_roll_number: '', full_name: '', branch: '', semester: '' });
+  };
+
+  const startExistingCapture = (studentId) => {
+    setActiveStudentId(studentId);
+    setWizardMode('camera-existing');
     setCapturedImages([]);
     setIsScanning(false);
   };
@@ -71,8 +79,14 @@ export default function StudentManagementPage() {
     }
     
     setIsScanning(false);
-    toast.success('Scan complete! Saving face data...', { duration: 2000 });
-    submitFaces(images);
+    
+    if (wizardMode === 'camera-existing') {
+        toast.success('Scan complete! Saving face data...', { duration: 2000 });
+        submitFaces(activeStudentId, images);
+    } else if (wizardMode === 'camera-new') {
+        toast.success('Face Validated! Proceed to enter details.', { duration: 2500 });
+        setWizardMode('form-new');
+    }
   };
 
   const captureSingleFrame = () => {
@@ -89,18 +103,37 @@ export default function StudentManagementPage() {
     return dataUrl.split(',')[1];
   };
 
-  const submitFaces = async (imagesToSubmit) => {
+  const submitFaces = async (studentId, imagesToSubmit) => {
     if (!imagesToSubmit || imagesToSubmit.length === 0) return;
     try {
-      await api.post(`/students/${capturing}/face`, { images: imagesToSubmit });
+      await api.post(`/students/${studentId}/face`, { images: imagesToSubmit });
       toast.success('Face registered successfully!');
-      stopCapture();
+      closeWizard();
       loadStudents();
     } catch (err) { toast.error(err.response?.data?.detail || 'Face registration failed'); }
   };
 
-  const stopCapture = () => {
-    setCapturing(null);
+  const handleFinalSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Step 1: Create student user profile
+      toast.loading('Creating student profile...', { id: 'reg' });
+      const res = await api.post('/students/', { ...form, semester: parseInt(form.semester) });
+      const newStudentId = res.data.id;
+
+      // Step 2: Push stored facial data
+      toast.loading('Binding facial metrics...', { id: 'reg' });
+      await submitFaces(newStudentId, capturedImages);
+      toast.success('Student Fully Registered!', { id: 'reg' });
+      
+    } catch (err) { 
+      toast.error(err.response?.data?.detail || 'Registration encountered an error', { id: 'reg' }); 
+    }
+  };
+
+  const closeWizard = () => {
+    setWizardMode(null);
+    setActiveStudentId(null);
     setCapturedImages([]);
     setIsScanning(false);
   };
@@ -114,77 +147,91 @@ export default function StudentManagementPage() {
         <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
             <h1 className="brutal-title">Student Management</h1>
-            <p className="brutal-subtitle mt-2">Register students and capture face data</p>
+            <p className="brutal-subtitle mt-2">Biometric Intake Pipeline</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2">
-            <FiPlus strokeWidth={3} /> Add Student
+          <button onClick={startNewRegistration} className="btn-primary flex items-center gap-2 px-6 py-4">
+            <FiCamera strokeWidth={3} className="text-xl" /> Biometric Intake (Add Student)
           </button>
         </div>
 
-        {/* Registration Form */}
-        {showForm && (
-          <div className="neo-panel border-4 border-black p-8 mb-10 animate-slide-up">
-            <h2 className="brutal-subtitle mb-6 text-black">Register New Student</h2>
-            <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input className="input-field" placeholder="Display Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              <input className="input-field" placeholder="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
-              <input className="input-field" placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-              <input className="input-field" placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-              <input className="input-field" placeholder="Roll Number" value={form.college_roll_number} onChange={(e) => setForm({ ...form, college_roll_number: e.target.value })} required />
-              <input className="input-field" placeholder="Branch" value={form.branch} onChange={(e) => setForm({ ...form, branch: e.target.value })} required />
-              <input className="input-field" placeholder="Semester" type="number" min="1" max="8" value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })} required />
-              <div className="flex items-end gap-3">
-                <button type="submit" className="btn-primary">Register</button>
-                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Face Capture Modal */}
-        {capturing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-md">
-            <div className="brutal-card bg-[#f0f0f5] p-8 w-full max-w-2xl animate-slide-up">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="brutal-subtitle text-black">Face Capture</h2>
-                <button onClick={stopCapture} className="p-2 border-2 border-black bg-white hover:-translate-y-1 shadow-[2px_2px_0px_#000] active:translate-y-px active:shadow-none transition-all"><FiX className="text-black font-black" strokeWidth={3} /></button>
+        {/* Registration Wizard Modal */}
+        {wizardMode && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-md p-4 overflow-y-auto">
+            <div className="brutal-card bg-[#f0f0f5] p-8 w-full max-w-2xl animate-fade-in my-auto">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b-4 border-black">
+                <h2 className="brutal-subtitle text-black font-black">
+                    {wizardMode === 'form-new' ? 'STEP 2: BIOGRAPHIC DETAILS' : 'STEP 1: FACIAL BIOMETRICS'}
+                </h2>
+                <button onClick={closeWizard} className="p-2 border-2 border-black bg-white hover:-translate-y-1 shadow-[2px_2px_0px_#000] active:translate-y-px active:shadow-none transition-all"><FiX className="text-black font-black" strokeWidth={3} /></button>
               </div>
 
-              {/* Progress Steps */}
-              <div className="flex gap-3 mb-6">
-                {[0, 1, 2, 3].map((step, i) => (
-                  <div key={step} className={`flex-1 h-3 rounded-none border-2 border-black transition-all duration-300 ${i < capturedImages.length ? 'bg-[#ebff00] shadow-[2px_2px_0px_#000]' : isScanning && i === capturedImages.length ? 'bg-black animate-pulse shadow-[2px_2px_0px_#d1d5db]' : 'bg-white'}`} />
-                ))}
-              </div>
-              <div className="text-center mb-6 min-h-[24px]">
-                {capturedImages.length === 4 ? (
-                  <span className="text-black font-black uppercase tracking-widest px-3 py-1 bg-[#ebff00] border-2 border-black shadow-[2px_2px_0px_#000]">Scan Complete! Registering...</span>
-                ) : isScanning ? (
-                  <span className="text-black font-black uppercase tracking-widest animate-pulse">Scanning... Slowly turn your head ({capturedImages.length}/4)</span>
-                ) : (
-                  <span className="text-gray-600 font-bold uppercase tracking-wider text-sm">Position your face in the center to begin scanning.</span>
-                )}
-              </div>
+              {/* View 1: Camera Scanner */}
+              {wizardMode.startsWith('camera') && (
+                <>
+                    <div className="flex gap-3 mb-6">
+                        {[0, 1, 2, 3].map((step, i) => (
+                        <div key={step} className={`flex-1 h-3 rounded-none border-2 border-black transition-all duration-300 ${i < capturedImages.length ? 'bg-[#ebff00] shadow-[2px_2px_0px_#000]' : isScanning && i === capturedImages.length ? 'bg-black animate-pulse shadow-[2px_2px_0px_#d1d5db]' : 'bg-white'}`} />
+                        ))}
+                    </div>
 
-              {/* Camera View */}
-              <div className="camera-feed mb-4 h-64 md:h-80 w-full relative">
-                <CameraFeed 
-                  ref={cameraRef} 
-                  isActive={true} 
-                  onStreamError={() => setCapturing(null)} 
-                />
-                <canvas ref={canvasRef} className="hidden" />
-              </div>
+                    <div className="text-center mb-6 min-h-[24px]">
+                        {capturedImages.length === 4 ? (
+                        <span className="text-black font-black uppercase tracking-widest px-3 py-1 bg-[#ebff00] border-2 border-black shadow-[2px_2px_0px_#000]">Acquisition Complete</span>
+                        ) : isScanning ? (
+                        <span className="text-black font-black uppercase tracking-widest animate-pulse">Scanning... Keep your head still ({capturedImages.length}/4)</span>
+                        ) : (
+                        <span className="text-gray-600 font-bold uppercase tracking-wider text-sm">Align face in the center of the frame</span>
+                        )}
+                    </div>
 
-              <div className="flex justify-center mt-4">
-                {!isScanning && capturedImages.length < 4 && (
-                  <button onClick={runAutoScan} className="btn-primary flex items-center gap-2 group relative overflow-hidden">
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                    <FiCamera className="relative z-10" /> 
-                    <span className="relative z-10">Start Auto-Scan</span>
-                  </button>
-                )}
-              </div>
+                    <div className="camera-feed mb-4 h-64 md:h-80 w-full relative group">
+                        <CameraFeed 
+                        ref={cameraRef} 
+                        isActive={true} 
+                        onStreamError={() => closeWizard()} 
+                        />
+                        <canvas ref={canvasRef} className="hidden" />
+                    </div>
+
+                    <div className="flex justify-center mt-6">
+                        {!isScanning && capturedImages.length < 4 && (
+                        <button onClick={runAutoScan} className="btn-primary w-full max-w-sm flex items-center justify-center gap-3 group relative overflow-hidden py-4 text-lg">
+                            <FiCamera strokeWidth={3} className="relative z-10 text-xl" /> 
+                            <span className="relative z-10 font-bold">Initiate Bio-Scan</span>
+                        </button>
+                        )}
+                    </div>
+                </>
+              )}
+
+              {/* View 2: Registration Details Form */}
+              {wizardMode === 'form-new' && (
+                <form onSubmit={handleFinalSubmit} className="space-y-6 animate-slide-up">
+                  <div className="flex items-center gap-4 p-4 border-2 border-black bg-white shadow-[2px_2px_0px_#000] mb-8">
+                     <FiCheck className="text-3xl text-emerald-500" strokeWidth={3} />
+                     <div>
+                         <p className="text-xs uppercase font-black text-gray-500 tracking-widest">Biometrics Linked</p>
+                         <p className="text-sm font-bold text-black">4 Secure facial snapshots stored in memory buffer.</p>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input className="input-field border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none" placeholder="Display Name (Username)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                    <input className="input-field border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none" placeholder="Full Legal Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+                    <input className="input-field border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none" placeholder="Target Email Address" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+                    <input className="input-field border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none" placeholder="Temporary Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+                    <input className="input-field border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none" placeholder="College Roll Number" value={form.college_roll_number} onChange={(e) => setForm({ ...form, college_roll_number: e.target.value })} required />
+                    <input className="input-field border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none" placeholder="Academic Branch" value={form.branch} onChange={(e) => setForm({ ...form, branch: e.target.value })} required />
+                    <input className="input-field border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none" placeholder="Currently Active Semester" type="number" min="1" max="8" value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })} required />
+                  </div>
+                  
+                  <div className="flex items-end gap-4 mt-8 pt-6 border-t-4 border-black">
+                    <button type="submit" className="btn-primary flex-[2] py-4 text-lg">Complete Registration <FiCheck className="inline ml-2" strokeWidth={3} /></button>
+                    <button type="button" onClick={closeWizard} className="btn-secondary flex-1 py-4 text-lg">Abort</button>
+                  </div>
+                </form>
+              )}
+
             </div>
           </div>
         )}
@@ -257,10 +304,10 @@ export default function StudentManagementPage() {
                   <td className="p-4 text-gray-700 font-bold">{s.semester}</td>
                   <td className="p-4">
                     {s.has_face ? (
-                      <span className="badge-present">✓ Registered</span>
+                      <span className="badge-present">✓ Linked</span>
                     ) : (
-                      <button onClick={() => startCapture(s.id)} className="btn-secondary text-xs py-2 px-3 flex items-center gap-2">
-                        <FiCamera className="text-sm" /> Capture
+                      <button onClick={() => startExistingCapture(s.id)} className="btn-secondary text-xs py-2 px-3 flex items-center gap-2">
+                        <FiCamera className="text-sm" /> Add Bio Data
                       </button>
                     )}
                   </td>
