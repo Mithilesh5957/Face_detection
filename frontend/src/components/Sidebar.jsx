@@ -25,8 +25,12 @@ export default function Sidebar() {
             }`
           }
         >
-          <link.icon className={`text-xl ${isActive ? 'stroke-[3px]' : ''}`} />
-          {link.label}
+          {({ isActive }) => (
+            <>
+              <link.icon className={`text-xl ${isActive ? 'stroke-[3px]' : ''}`} />
+              {link.label}
+            </>
+          )}
         </NavLink>
       ))}
 

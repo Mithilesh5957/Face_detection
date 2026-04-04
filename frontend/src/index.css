@@ -45,6 +45,9 @@ body {
 .brutal-subtitle {
   @apply text-lg font-bold text-gray-700 uppercase tracking-widest;
 }
+.text-shadow-brutal {
+  text-shadow: 2px 2px 0px #ebff00;
+}
 
 /* ── Components: Neo & Brutal ─────────────────────────────── */
 @layer components {

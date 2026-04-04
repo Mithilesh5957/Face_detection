@@ -86,7 +86,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#f0f0f5]">
       <Navbar />
       <Sidebar />
 

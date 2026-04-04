@@ -26,38 +26,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background orbs */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary-600/20 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
-
+    <div className="min-h-screen bg-[#f0f0f5] flex items-center justify-center p-4">
+      
       <div className="w-full max-w-md animate-fade-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-purple-500 mb-4 shadow-lg shadow-primary-500/30">
-            <FiShield className="text-white text-3xl" />
+        {/* Title area */}
+        <div className="mb-10 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 border-4 border-black bg-[#ebff00] mb-6 shadow-[4px_4px_0px_#000] -rotate-3 hover:rotate-0 transition-transform">
+            <FiShield className="text-black text-3xl" strokeWidth={3} />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            FaceAttend
-          </h1>
-          <p className="text-gray-400 mt-2">Smart Attendance System with Face Recognition</p>
+          <h1 className="brutal-title text-5xl">FACE<span className="text-white text-shadow-brutal bg-black px-2 ml-1">ATTEND</span></h1>
+          <p className="brutal-subtitle mt-4 text-sm">Security & Access Protocol</p>
         </div>
 
-        {/* Login Card */}
-        <div className="glass-card p-8">
-          <h2 className="text-xl font-semibold text-white mb-6">Sign In</h2>
+        {/* Brutalist Login Card */}
+        <div className="neo-panel border-4 border-black p-8 bg-white relative">
+          
+          <div className="absolute -top-4 -right-4 px-3 py-1 bg-[#ebff00] border-2 border-black font-black uppercase text-xs tracking-widest shadow-[2px_2px_0px_#000] rotate-6">
+            Authorized Only
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <h2 className="text-2xl font-black text-black uppercase tracking-wide mb-8 border-b-4 border-black pb-4">
+            System Login
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Email</label>
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-widest mb-2">Operator Email</label>
               <div className="relative">
-                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-black" strokeWidth={3} />
                 <input
                   id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-11"
+                  className="input-field pl-12 border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none font-bold"
                   placeholder="admin@college.edu"
                   required
                 />
@@ -65,15 +67,15 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Password</label>
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-widest mb-2">Access Code</label>
               <div className="relative">
-                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-black" strokeWidth={3} />
                 <input
                   id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-11"
+                  className="input-field pl-12 border-2 border-black focus:shadow-[4px_4px_0px_#000] focus:-translate-y-1 transition-all rounded-none font-bold"
                   placeholder="••••••••"
                   required
                 />
@@ -84,23 +86,27 @@ export default function LoginPage() {
               id="login-submit"
               type="submit"
               disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2"
+              className="btn-primary w-full mt-4 flex items-center justify-center gap-3 py-4 text-lg"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-4 border-black border-t-transparent animate-spin" />
               ) : (
                 <>
-                  Sign In <FiArrowRight />
+                  Authenticate <FiArrowRight strokeWidth={3} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/5">
-            <p className="text-xs text-gray-500 font-medium mb-1">Demo Credentials</p>
-            <p className="text-xs text-gray-400">
-              <span className="text-primary-400">Admin:</span> admin@college.edu / admin123
-            </p>
+          {/* Test credentials banner */}
+          <div className="mt-8 pt-6 border-t-4 border-black">
+            <div className="bg-gray-100 border-2 border-black p-4 shadow-[3px_3px_0px_#000]">
+              <p className="text-xs font-black uppercase tracking-widest text-black mb-2">Demo Override Codes</p>
+              <p className="text-sm font-bold text-gray-700">
+                <span className="bg-[#ebff00] px-1 text-black border border-black mr-2">ADM</span> 
+                admin@college.edu / admin123
+              </p>
+            </div>
           </div>
         </div>
       </div>
