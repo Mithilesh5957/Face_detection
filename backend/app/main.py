@@ -34,6 +34,12 @@ async def lifespan(app: FastAPI):
             await db.commit()
             print("✅ Default admin created: admin@college.edu / admin123")
 
+    # Warm up ArcFace model in background thread
+    import asyncio
+    from app.services.face_recognition import face_recognizer
+    await asyncio.to_thread(lambda: face_recognizer._app)
+    print("✅ InsightFace model warmed up and ready in memory.")
+
     yield
     # Shutdown
     print("🛑 Shutting down...")

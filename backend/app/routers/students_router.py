@@ -115,28 +115,33 @@ async def capture_face(
     if not req.images or len(req.images) == 0:
         raise HTTPException(status_code=400, detail="At least one image is required")
 
+    import asyncio
     # Lazy import to avoid loading heavy models on module import
     from app.services.face_recognition import face_recognizer
 
-    embeddings = []
-    for idx, img_b64 in enumerate(req.images):
-        try:
-            img_bytes = base64.b64decode(img_b64)
-            nparr = np.frombuffer(img_bytes, np.uint8)
-            import cv2
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if img is None:
-                raise ValueError("decode failed")
-        except Exception:
-            raise HTTPException(status_code=400, detail=f"Invalid image at index {idx}")
+    def process_images_sync(images_b64: list[str]) -> list[np.ndarray]:
+        extracted = []
+        for idx, img_b64 in enumerate(images_b64):
+            try:
+                img_bytes = base64.b64decode(img_b64)
+                nparr = np.frombuffer(img_bytes, np.uint8)
+                import cv2
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                if img is None:
+                    raise ValueError("decode failed")
+            except Exception:
+                raise ValueError(f"Invalid image at index {idx}")
 
-        emb = face_recognizer.extract_embedding(img)
-        if emb is None:
-            raise HTTPException(
-                status_code=400,
-                detail=f"No face detected in image {idx}. Please retake.",
-            )
-        embeddings.append(emb)
+            emb = face_recognizer.extract_embedding(img)
+            if emb is None:
+                raise ValueError(f"No face detected in image {idx}. Please retake.")
+            extracted.append(emb)
+        return extracted
+
+    try:
+        embeddings = await asyncio.to_thread(process_images_sync, req.images)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Average embeddings for a robust representation
     avg_embedding = np.mean(embeddings, axis=0).astype(np.float32)

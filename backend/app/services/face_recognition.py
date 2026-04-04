@@ -21,7 +21,7 @@ class FaceRecognizer:
                 name="buffalo_l",
                 providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
             )
-            self._app.prepare(ctx_id=0, det_size=(640, 640))
+            self._app.prepare(ctx_id=0, det_size=(320, 320))
             print("✅ InsightFace ArcFace model loaded")
         except Exception as e:
             print(f"⚠️  InsightFace not available ({e}), face recognition disabled")
