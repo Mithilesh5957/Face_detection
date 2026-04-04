@@ -4,10 +4,10 @@ from datetime import date, datetime
 from typing import Optional, List
 
 try:
-    from pydantic import field_validator, BaseModel, ConfigDict
+    from pydantic import field_validator, BaseModel, ConfigDict, Field
     PYDANTIC_V2 = True
 except ImportError:
-    from pydantic import validator, BaseModel
+    from pydantic import validator, BaseModel, Field
     PYDANTIC_V2 = False
 
 
