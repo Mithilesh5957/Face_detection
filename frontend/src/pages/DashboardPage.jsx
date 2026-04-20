@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import api from '../api/client';
-import { FiUsers, FiCamera, FiCheckCircle, FiTrendingUp, FiDownload, FiFilter } from 'react-icons/fi';
+import toast from 'react-hot-toast';
+import { FiUsers, FiCamera, FiCheckCircle, FiTrendingUp, FiDownload, FiFilter, FiTrash2, FiX } from 'react-icons/fi';
 import { downloadCSV } from '../utils/csvExport';
 
 export default function DashboardPage() {
@@ -12,6 +13,10 @@ export default function DashboardPage() {
   const [allSessions, setAllSessions] = useState([]);
   const [filter, setFilter] = useState('all'); // all, active, completed
   const [chartData, setChartData] = useState([]);
+
+  // Advanced Session Modal
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [sessionDetails, setSessionDetails] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -84,6 +89,52 @@ export default function DashboardPage() {
       bgColor: 'bg-emerald-500/10',
     },
   ];
+
+  const openSessionModal = async (sessionId) => {
+    setSelectedSessionId(sessionId);
+    setSessionDetails(null);
+    try {
+      const res = await api.get(`/reports/session/${sessionId}`);
+      setSessionDetails(res.data);
+    } catch (err) {
+      toast.error('Failed to load session details');
+      setSelectedSessionId(null);
+    }
+  };
+
+  const closeSessionModal = () => {
+    setSelectedSessionId(null);
+    setSessionDetails(null);
+  };
+
+  const deleteSession = async (sessionId) => {
+    if (!window.confirm("Are you sure you want to completely erase this session? This action cannot be undone.")) return;
+    try {
+      await api.delete(`/attendance/session/${sessionId}`);
+      toast.success("Session erased from history.");
+      closeSessionModal();
+      loadData();
+    } catch (err) {
+      toast.error('Failed to delete session');
+    }
+  };
+
+  const toggleStudentAttendance = async (sessionId, studentId, currentStatus) => {
+    const newStatus = currentStatus === 'present' ? 'absent' : 'present';
+    try {
+      await api.post('/attendance/override', {
+        session_id: sessionId,
+        student_id: studentId,
+        status: newStatus,
+      });
+      // Silent refresh of the details in the modal
+      const res = await api.get(`/reports/session/${sessionId}`);
+      setSessionDetails(res.data);
+      toast.success(`Marked as ${newStatus}`);
+    } catch (err) {
+      toast.error('Failed to update attendance');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f0f0f5]">
@@ -204,7 +255,7 @@ export default function DashboardPage() {
               {recentSessions
                 .filter(s => filter === 'all' ? true : filter === 'active' ? s.status === 'active' : s.status !== 'active')
                 .map((session) => (
-                <div key={session.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 border-2 border-black shadow-[4px_4px_0px_#d1d5db] hover:shadow-[6px_6px_0px_#000] hover:-translate-y-1 transition-all bg-[#f0f0f5]">
+                <div key={session.id} onClick={() => openSessionModal(session.id)} className="cursor-pointer flex flex-col md:flex-row md:items-center justify-between p-4 border-2 border-black shadow-[4px_4px_0px_#d1d5db] hover:shadow-[6px_6px_0px_#000] hover:-translate-y-1 transition-all bg-[#f0f0f5]">
                   <div>
                     <div className="text-lg font-black text-black">SESSION #{session.id}</div>
                     <div className="text-xs font-bold text-gray-600 mt-1 uppercase tracking-wider">
@@ -221,6 +272,73 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        {/* Modal Overlay for Advanced Session Edit */}
+        {selectedSessionId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="brutal-card bg-[#f0f0f5] border-4 border-black w-full max-w-2xl max-h-[90vh] flex flex-col shadow-[12px_12px_0px_#000] animate-slide-up">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b-4 border-black bg-white shrink-0">
+                <div>
+                  <h2 className="brutal-title text-2xl">Session #{selectedSessionId}</h2>
+                  <p className="font-bold text-gray-500 uppercase tracking-widest text-xs mt-1">Audit Mode</p>
+                </div>
+                <button onClick={closeSessionModal} className="p-2 border-2 border-black bg-[#ebff00] hover:bg-white transition-colors shadow-[2px_2px_0px_#000]">
+                  <FiX className="text-xl text-black" strokeWidth={3} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto flex-1 bg-white">
+                {!sessionDetails ? (
+                   <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-black border-t-transparent animate-spin"></div></div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                       <div className="border-2 border-black p-4 bg-[#ebff00]">
+                         <div className="text-sm font-bold uppercase tracking-widest">Total Present</div>
+                         <div className="text-3xl font-black">{sessionDetails.present_count}</div>
+                       </div>
+                       <div className="border-2 border-black p-4 bg-red-500 text-white">
+                         <div className="text-sm font-bold uppercase tracking-widest">Total Absent</div>
+                         <div className="text-3xl font-black">{sessionDetails.absent_count}</div>
+                       </div>
+                    </div>
+                    
+                    <h3 className="brutal-subtitle text-black mb-4">Override Roster</h3>
+                    <div className="space-y-3">
+                      {sessionDetails.logs.map(log => (
+                        <div key={log.id} className={`flex items-center justify-between p-3 border-2 border-black ${log.status === 'present' ? 'bg-[#ebff00]/20' : 'bg-red-50'}`}>
+                          <div>
+                            <p className="font-black text-black uppercase">{log.student_name || 'N/A'}</p>
+                            <p className="text-xs font-bold text-gray-600">{log.roll_number || 'N/A'}</p>
+                          </div>
+                          <button
+                            onClick={() => toggleStudentAttendance(sessionDetails.session_id, log.student_id, log.status)}
+                            className={`px-4 py-2 text-xs font-black uppercase tracking-widest border-2 border-black transition-all shadow-[2px_2px_0px_#000] active:translate-y-1 active:shadow-none ${log.status === 'present' ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-100'}`}
+                          >
+                            Mark {log.status === 'present' ? 'Absent' : 'Present'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t-4 border-black bg-gray-100 flex justify-between items-center shrink-0">
+                <button
+                  onClick={() => deleteSession(selectedSessionId)}
+                  className="btn-danger flex items-center gap-2 !py-2 !px-4"
+                >
+                  <FiTrash2 strokeWidth={3} /> Delete Session
+                </button>
+                <div className="text-xs font-bold text-gray-500 uppercase">Warning: Irreversible action</div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

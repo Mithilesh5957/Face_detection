@@ -31,6 +31,17 @@ async def list_sessions(db: AsyncSession = Depends(get_db), user=Depends(get_cur
     return result.scalars().all()
 
 
+@router.delete("/session/{session_id}", status_code=204)
+async def delete_session(session_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
+    result = await db.execute(select(AttendanceSession).where(AttendanceSession.id == session_id))
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    await db.delete(session)
+    await db.commit()
+
+
 @router.post("/start", response_model=SessionOut)
 async def start_session(db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     # Check if there's already an active session
