@@ -34,6 +34,31 @@ async def lifespan(app: FastAPI):
             await db.commit()
             print("✅ Default admin created: admin@college.edu / admin123")
 
+        # Create default student if not exists for demo purposes
+        from app.models import Student
+        result_student = await db.execute(select(User).where(User.email == "student@college.edu"))
+        demo_student_user = result_student.scalar_one_or_none()
+        if demo_student_user is None:
+            demo_user = User(
+                name="Demo Student",
+                email="student@college.edu",
+                role=RoleEnum.student,
+                password_hash=hash_password("student123"),
+            )
+            db.add(demo_user)
+            await db.flush() # flush to get user.id
+
+            demo_profile = Student(
+                user_id=demo_user.id,
+                college_roll_number="DEMO123",
+                full_name="Demo Student Profile",
+                branch="CSE",
+                semester=1,
+            )
+            db.add(demo_profile)
+            await db.commit()
+            print("✅ Default student created: student@college.edu / student123")
+
     # Warm up ArcFace model in background thread
     import asyncio
     from app.services.face_recognition import face_recognizer

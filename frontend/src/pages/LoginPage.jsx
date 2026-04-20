@@ -46,12 +46,12 @@ export default function LoginPage() {
           </div>
 
           <h2 className="text-2xl font-black text-black uppercase tracking-wide mb-8 border-b-4 border-black pb-4">
-            System Login
+            Universal Access Portal
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase tracking-widest mb-2">Operator Email</label>
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-widest mb-2">University Email</label>
               <div className="relative">
                 <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-black" strokeWidth={3} />
                 <input
@@ -67,7 +67,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase tracking-widest mb-2">Access Code</label>
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-widest mb-2">Password</label>
               <div className="relative">
                 <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-black" strokeWidth={3} />
                 <input
@@ -102,10 +102,16 @@ export default function LoginPage() {
           <div className="mt-8 pt-6 border-t-4 border-black">
             <div className="bg-gray-100 border-2 border-black p-4 shadow-[3px_3px_0px_#000]">
               <p className="text-xs font-black uppercase tracking-widest text-black mb-2">Demo Override Codes</p>
-              <p className="text-sm font-bold text-gray-700">
-                <span className="bg-[#ebff00] px-1 text-black border border-black mr-2">ADM</span> 
-                admin@college.edu / admin123
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-bold text-gray-700 flex items-center">
+                  <span className="bg-[#ebff00] px-1 text-black border border-black mr-2 text-xs font-black w-10 text-center">ADM</span> 
+                  admin@college.edu / admin123
+                </p>
+                <p className="text-sm font-bold text-gray-700 flex items-center">
+                  <span className="bg-black text-white px-1 border border-black mr-2 text-xs font-black w-10 text-center">STU</span> 
+                  student@college.edu / student123
+                </p>
+              </div>
             </div>
           </div>
         </div>
