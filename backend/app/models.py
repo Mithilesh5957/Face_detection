@@ -66,7 +66,7 @@ class AttendanceSession(Base):
     end_time = Column(DateTime, nullable=True)
     status = Column(Enum(SessionStatusEnum), nullable=False, default=SessionStatusEnum.active)
 
-    logs = relationship("AttendanceLog", back_populates="session")
+    logs = relationship("AttendanceLog", back_populates="session", cascade="all, delete-orphan", passive_deletes=True)
 
 
 # ── Attendance Logs ─────────────────────────────────────────────────────────────
